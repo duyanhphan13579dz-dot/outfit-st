@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigation, Tab } from "./components/Navigation";
 import { AuthScreen } from "./screens/AuthScreen";
 import { AdminDashboard } from "./screens/AdminDashboard";
-import { getProfile, supabase, type Profile } from "./lib/supabase";
+import { getProfile, supabase, type Profile as AccountProfile } from "./lib/supabase";
 import { Home } from "./screens/Home";
 import { Discover } from "./screens/Discover";
 import { Wardrobe } from "./screens/Wardrobe";
@@ -14,7 +14,7 @@ import { outfits } from "./data/style";
 export default function App() {
   const [tab, setTab] = useState<Tab>("home");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<AccountProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAdmin, setShowAdmin] = useState(false);
 
