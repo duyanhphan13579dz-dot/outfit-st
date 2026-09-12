@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { supabase, type Profile as AccountProfile } from "../lib/supabase";
+import { Button } from "../components/ui";
 import { bodyProfile, styleDNA, bestColors } from "../data/style";
 import { cn } from "../utils/cn";
 import { Eyebrow, ScoreBar, Section } from "../components/ui";
@@ -35,7 +37,7 @@ function MetricRow({ label, value, note }: { label: string; value: string; note:
   );
 }
 
-export function Profile() {
+export function Profile({ profile, onOpenAdmin }: { profile: AccountProfile; onOpenAdmin: () => void }) {
   return (
     <div className="h-full overflow-y-auto no-scrollbar pb-8">
       {/* Header */}
@@ -45,9 +47,12 @@ export function Profile() {
         </span>
         <div>
           <Eyebrow>Profile</Eyebrow>
-          <h1 className="font-display text-[26px] leading-tight text-ink">{bodyProfile.name}</h1>
+          <h1 className="font-display text-[26px] leading-tight text-ink">{profile.display_name || bodyProfile.name}</h1>
+          <p className="mt-1 text-xs text-muted">{profile.email}</p>
         </div>
       </header>
+
+      <div className="mt-6 flex gap-3 px-6"><Button variant="outline" size="sm" onClick={() => void supabase.auth.signOut()}>Đăng xuất</Button>{profile.role === "admin" && <Button size="sm" onClick={onOpenAdmin}>Quản lý user</Button>}</div>
 
       {/* Body Profile */}
       <Section className="mt-7">
