@@ -16,7 +16,14 @@ export function AuthScreen() {
     setMessage("");
     const result = mode === "signin"
       ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password, options: { data: { display_name: displayName } } });
+      : await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { display_name: displayName },
+            emailRedirectTo: import.meta.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback`,
+          },
+        });
     setBusy(false);
     if (result.error) {
       const text = result.error.message.toLowerCase();
