@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase, type Profile as AccountProfile } from "../lib/supabase";
 import { Button } from "../components/ui";
 import { bodyProfile, styleDNA, bestColors } from "../data/style";
@@ -38,17 +38,66 @@ function MetricRow({ label, value, note }: { label: string; value: string; note:
 }
 
 export function Profile({ profile, onOpenAdmin }: { profile: AccountProfile; onOpenAdmin: () => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
+  const [uploading, setUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+
+  async function handleAvatarChange(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+      setAvatarError("Vui lòng chọn ảnh tối đa 5MB.");
+      return;
+    }
+
+    setUploading(true);
+    setAvatarError(null);
+    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${profile.id}/avatar.${extension}`;
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, {
+      upsert: true,
+      contentType: file.type,
+      cacheControl: "3600",
+    });
+
+    if (uploadError) {
+      setAvatarError("Không thể tải ảnh lên. Vui lòng thử lại.");
+      setUploading(false);
+      return;
+    }
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    const nextAvatarUrl = `${data.publicUrl}?v=${Date.now()}`;
+    const { error: profileError } = await supabase.from("profiles").update({ avatar_url: nextAvatarUrl }).eq("id", profile.id);
+    if (profileError) {
+      setAvatarError("Ảnh đã tải lên nhưng chưa cập nhật hồ sơ.");
+    } else {
+      setAvatarUrl(nextAvatarUrl);
+    }
+    setUploading(false);
+  }
+
   return (
     <div className="h-full overflow-y-auto no-scrollbar pb-8">
       {/* Header */}
       <header className="flex items-center gap-4 px-6 pt-7">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-ink font-display text-2xl text-offwhite">
-          {bodyProfile.name.charAt(0)}
-        </span>
+        <button
+          type="button"
+          className="group relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink font-display text-2xl text-offwhite"
+          onClick={() => inputRef.current?.click()}
+          aria-label="Đổi ảnh đại diện"
+          disabled={uploading}
+        >
+          {avatarUrl ? <img src={avatarUrl} alt="Ảnh đại diện" className="h-full w-full object-cover" /> : bodyProfile.name.charAt(0)}
+          <span className="absolute inset-0 flex items-center justify-center bg-ink/70 text-[10px] font-sans uppercase tracking-[0.12em] opacity-0 transition-opacity group-hover:opacity-100">Đổi ảnh</span>
+        </button>
+        <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => void handleAvatarChange(event.target.files?.[0])} />
         <div>
           <Eyebrow>Profile</Eyebrow>
           <h1 className="font-display text-[26px] leading-tight text-ink">{profile.display_name || bodyProfile.name}</h1>
           <p className="mt-1 text-xs text-muted">{profile.email}</p>
+          <p className="mt-1 text-[11px] text-muted">{uploading ? "Đang tải ảnh..." : "Nhấn vào ảnh để thay avatar"}</p>
+          {avatarError && <p className="mt-1 text-[11px] text-clay" role="alert">{avatarError}</p>}
         </div>
       </header>
 
